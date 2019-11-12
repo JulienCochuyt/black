@@ -1570,12 +1570,12 @@ class Line:
             n.type in TEST_DESCENDANTS for n in subscript_start.pre_order()
         )
 
-    def render(self, force_spaces: bool = False) -> str:
+    def __str__(self) -> str:
         """Render the line."""
         if not self:
             return "\n"
 
-        indent_style = "    " if force_spaces or not self.use_tabs else "\t"
+        indent_style = "    " if not self.use_tabs else "\t"
         indent = indent_style * self.depth
         leaves = iter(self.leaves)
         first = next(leaves)
@@ -1585,9 +1585,6 @@ class Line:
         for comment in itertools.chain.from_iterable(self.comments.values()):
             res += str(comment)
         return res + "\n"
-
-    def __str__(self) -> str:
-        return self.render()
 
     def __bool__(self) -> bool:
         """Return True if the line has leaves or comments."""
@@ -3971,10 +3968,15 @@ def is_line_short_enough(line: Line, *, line_length: int, line_str: str = "") ->
     Uses the provided `line_str` rendering, if any, otherwise computes a new one.
     """
     if not line_str:
-        # Force spaces to ensure len(line) is correct
-        line_str = line.render(force_spaces=True).strip("\n")
+        line_str = str(line).strip("\n")
+    candidate_length = len(line_str)
+    for c in line_str:
+        if c == "\t":
+            candidate_length += 3  # 1 tab = 4 spaces
+        else:
+            break
     return (
-        len(line_str) <= line_length
+        candidate_length <= line_length
         and "\n" not in line_str  # multiline strings
         and not line.contains_standalone_comments()
     )
